@@ -20,62 +20,32 @@ FastAPI uses these automatically for:
 
 """
  
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 from typing import Optional
 
 from datetime import datetime
  
  
-# ── REQUEST models (what comes IN to your API) ────────────────────────────────
- 
 class LogIngestRequest(BaseModel):
 
-    """
-
-    Shape of a single log sent to POST /logs/ingest
-
-    This is what Filebeat / simulate_logs.py sends to your API
-
-    """
-
-    timestamp : str             = Field(..., example="2025-06-20 10:30:00")
-
-    source    : str             = Field(..., example="BillingSystem")
-
-    log_message: str            = Field(..., example="Payment failed for order 8291")
+    model_config = ConfigDict(extra="ignore")
  
-    class Config:
+    timestamp  : str
 
-        # allows extra fields to be ignored instead of causing errors
+    source     : str
 
-        extra = "ignore"
+    log_message: str
  
  
 class BatchIngestRequest(BaseModel):
 
-    """
-
-    Shape of a batch of logs sent to POST /logs/batch
-
-    Sends multiple logs in one request
-
-    """
-
     logs: list[LogIngestRequest]
  
  
-# ── RESPONSE models (what goes OUT from your API) ─────────────────────────────
- 
 class LogClassifyResponse(BaseModel):
 
-    """
-
-    What your API returns after classifying a single log
-
-    """
-
-    id              : Optional[int] = None
+    id              : Optional[int]      = None
 
     timestamp       : str
 
@@ -85,24 +55,18 @@ class LogClassifyResponse(BaseModel):
 
     predicted_label : str
 
-    classifier_used : str           # "regex", "bert", or "llm"
+    classifier_used : str
 
-    confidence      : Optional[float] = None   # only bert gives confidence score
+    confidence      : Optional[float]    = None
 
-    severity        : str           # "CRITICAL", "HIGH", "MEDIUM", "LOW"
+    severity        : str
 
-    alert_sent      : bool          # was a Slack alert fired?
+    alert_sent      : bool
 
     processed_at    : Optional[datetime] = None
  
  
 class BatchIngestResponse(BaseModel):
-
-    """
-
-    What your API returns after processing a batch of logs
-
-    """
 
     total_received  : int
 
@@ -113,32 +77,20 @@ class BatchIngestResponse(BaseModel):
  
 class HealthResponse(BaseModel):
 
-    """
+    status     : str = "ok"
 
-    What GET /health returns
+    environment: str
 
-    """
-
-    status          : str  = "ok"
-
-    environment     : str
-
-    database        : str  = "connected"
+    database   : str = "connected"
  
  
 class LogListResponse(BaseModel):
 
-    """
+    total: int
 
-    What GET /logs returns — paginated list of classified logs
+    page : int
 
-    """
+    size : int
 
-    total  : int
-
-    page   : int
-
-    size   : int
-
-    logs   : list[LogClassifyResponse]
+    logs : list[LogClassifyResponse]
  

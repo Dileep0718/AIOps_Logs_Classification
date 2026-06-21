@@ -1,0 +1,80 @@
+version: "3.9"
+ 
+services:
+ 
+  # ── PostgreSQL database ───────────────────────────────────────────
+
+  db:
+
+    image: postgres:15
+
+    container_name: aiops_postgres
+
+    environment:
+
+      POSTGRES_USER: postgres
+
+      POSTGRES_PASSWORD: postgres
+
+      POSTGRES_DB: aiops_logs
+
+    ports:
+
+      - "5432:5432"         # expose to host so you can still connect locally
+
+    volumes:
+
+      - postgres_data:/var/lib/postgresql/data   # persist data across restarts
+
+    healthcheck:
+
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+
+      interval: 10s
+
+      timeout: 5s
+
+      retries: 5
+ 
+  # ── FastAPI app ───────────────────────────────────────────────────
+
+  app:
+
+    build:
+
+      context: ..           # build from project root (one level up from docker/)
+
+      dockerfile: docker/Dockerfile
+
+    container_name: aiops_app
+
+    ports:
+
+      - "8000:8000"
+
+    environment:
+
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/aiops_logs
+
+      GROQ_API_KEY: ${GROQ_API_KEY}
+
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+
+      ENVIRONMENT: production
+
+    depends_on:
+
+      db:
+
+        condition: service_healthy   # wait for postgres to be ready before starting app
+
+    volumes:
+
+      - ..:/app             # mount project root so code changes reflect immediately
+ 
+# ── named volume for postgres data ───────────────────────────────────
+
+volumes:
+
+  postgres_data:
+ 

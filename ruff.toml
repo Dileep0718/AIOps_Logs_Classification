@@ -1,0 +1,9 @@
+# ruff.toml
+line-length = 100
+
+[lint]
+select = ["E", "F", "I"]    # E=errors, F=pyflakes, I=imports
+ignore = ["E501"]            # ignore line too long (we have long log messages)
+ 
+[lint.per-file-ignores]
+"tests/*" = ["F401"]         # ignore unused imports in test files

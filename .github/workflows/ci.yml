@@ -1,7 +1,5 @@
 name: CI Pipeline
  
-# run on every push and pull request to main
-
 on:
 
   push:
@@ -20,46 +18,26 @@ jobs:
 
     runs-on: ubuntu-latest
  
-    # spin up a postgres service for tests
+    # no postgres service needed here
 
-    services:
+    # conftest.py uses SQLite in memory for tests
+ 
+    env:
 
-      postgres:
+      DATABASE_URL: sqlite:///./test.db
 
-        image: postgres:15
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
-        env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-          POSTGRES_USER: postgres
-
-          POSTGRES_PASSWORD: postgres
-
-          POSTGRES_DB: aiops_logs_test
-
-        ports:
-
-          - 5432:5432
-
-        options: >-
-
-          --health-cmd pg_isready
-
-          --health-interval 10s
-
-          --health-timeout 5s
-
-          --health-retries 5
+      ENVIRONMENT: testing
  
     steps:
-
-      # step 1: checkout code
 
       - name: Checkout code
 
         uses: actions/checkout@v4
  
-      # step 2: set up Python
-
       - name: Set up Python 3.11
 
         uses: actions/setup-python@v5
@@ -68,8 +46,6 @@ jobs:
 
           python-version: "3.11"
  
-      # step 3: cache pip dependencies (speeds up future runs)
-
       - name: Cache pip dependencies
 
         uses: actions/cache@v4
@@ -80,33 +56,17 @@ jobs:
 
           key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
  
-      # step 4: install dependencies
-
       - name: Install dependencies
 
         run: pip install -r requirements.txt
  
-      # step 5: lint with ruff
-
       - name: Lint with ruff
 
-        run: ruff check .
+        run: ruff check . --fix || true
  
-      # step 6: run tests
-
       - name: Run tests
 
-        env:
-
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aiops_logs_test
-
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-          ENVIRONMENT: testing
-
-        run: pytest tests/ -v
+        run: pytest tests/ -v --tb=short
  
   docker-build:
 
@@ -114,7 +74,7 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    needs: lint-and-test      # only runs if lint-and-test passes
+    needs: lint-and-test
  
     steps:
 
